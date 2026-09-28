@@ -1,5 +1,6 @@
 # preview-tab
 
+[![MELPA](https://melpa.org/packages/preview-tab-badge.svg)](https://melpa.org/#/preview-tab)
 [![test](https://github.com/ismd/preview-tab.el/actions/workflows/test.yml/badge.svg)](https://github.com/ismd/preview-tab.el/actions/workflows/test.yml)
 [![melpazoid](https://github.com/ismd/preview-tab.el/actions/workflows/melpazoid.yml/badge.svg)](https://github.com/ismd/preview-tab.el/actions/workflows/melpazoid.yml)
 
@@ -65,24 +66,18 @@ Suggested bindings:
 
 ## Installation
 
-Not on MELPA yet. No dependencies beyond Emacs 27.1.
+On [MELPA](https://melpa.org/#/preview-tab). No dependencies beyond Emacs 27.1.
+
+`M-x package-install RET preview-tab RET`, or with `use-package`:
 
 ```elisp
-;; use-package on Emacs 29+
 (use-package preview-tab
-  :vc (:url "https://github.com/ismd/preview-tab.el" :rev :newest)
-  :config (preview-tab-mode 1))
-
-;; straight.el
-(use-package preview-tab
-  :straight (:host github :repo "ismd/preview-tab.el")
-  :config (preview-tab-mode 1))
-
-;; elpaca
-(use-package preview-tab
-  :ensure (:host github :repo "ismd/preview-tab.el")
+  :ensure t
   :config (preview-tab-mode 1))
 ```
+
+The same works with elpaca; for straight.el, write `:straight t` instead of
+`:ensure t`.
 
 ### Doom Emacs
 
@@ -91,7 +86,7 @@ the usual two blocks is needed:
 
 ```elisp
 ;; packages.el
-(package! preview-tab :recipe (:host github :repo "ismd/preview-tab.el"))
+(package! preview-tab)
 
 ;; config.el
 (use-package! preview-tab

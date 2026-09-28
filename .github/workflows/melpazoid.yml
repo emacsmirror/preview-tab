@@ -2,8 +2,9 @@
 
 # melpazoid <https://github.com/riscy/melpazoid> build checks.
 #
-# Runs the same checks MELPA applies to a submitted recipe, so the package
-# stays submission-ready.  Set EXIST_OK to true once preview-tab is on MELPA.
+# Runs the checks MELPA applies to a recipe against the one preview-tab is
+# built from there, so a change that would break the MELPA build fails here
+# first.
 
 name: melpazoid
 
@@ -41,6 +42,6 @@ jobs:
           LOCAL_REPO: ${{ github.workspace }}
           RECIPE: >-
             (preview-tab :fetcher github :repo "ismd/preview-tab.el"
-             :branch "${{ github.ref_name }}" :files ("preview-tab.el"))
-          EXIST_OK: false
+             :branch "${{ github.ref_name }}")
+          EXIST_OK: true
         run: make -C ~/melpazoid
