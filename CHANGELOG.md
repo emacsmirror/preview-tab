@@ -4,6 +4,15 @@ Notable changes to preview-tab. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1]
+
+### Changed
+
+- preview-tab is now on [MELPA](https://melpa.org/#/preview-tab), and the
+  README installs it from there — with `package.el`, elpaca, straight.el and
+  Doom alike — rather than from the GitHub repository. The code is the same as
+  in 0.6.0.
+
 ## [0.6.0]
 
 ### Added
