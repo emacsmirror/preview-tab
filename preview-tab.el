@@ -195,7 +195,8 @@ why third-party commands can be listed here by default.
 Only files opened while the command itself runs are picked up.  A command
 that hands the visit off to a timer, a process filter or `post-command-hook'
 has already returned by the time the file appears, and its buffer stays an
-ordinary one.
+ordinary one.  So does a file the command opens without ever showing it,
+as the agenda does with its own: the preview is the file put on screen.
 
 Changing this list while the mode is on only takes effect through the
 customize machinery -- `setopt', `customize-set-variable', the Customize
@@ -206,9 +207,10 @@ Note that `find-file' is deliberately absent.  Like VS Code, which does not
 preview from Quick Open either, typing a file name is taken as a deliberate
 act; use `preview-tab-find-file' when you want the other behaviour once, or
 `preview-tab-include-named-files' when you want it always.  Doom's
-`+lookup/file' is absent for the same reason, as is `org-roam-node-find',
-and both go along with that option.  So is `+default/search-buffer', which
-searches the buffer you are already in and opens nothing."
+`+lookup/file' is absent for the same reason, as are `org-roam-node-find'
+and `org-open-at-point', and all three go along with that option.  So is
+`+default/search-buffer', which searches the buffer you are already in and
+opens nothing."
   :type '(repeat function)
   :set #'preview-tab--set-and-refresh
   :group 'preview-tab)
@@ -221,7 +223,8 @@ searches the buffer you are already in and opens nothing."
     magit-find-file-other-window
     magit-find-file-other-frame
     +lookup/file
-    org-roam-node-find)
+    org-roam-node-find
+    org-open-at-point)
   "Commands `preview-tab-include-named-files' takes in when it is on.")
 
 (defcustom preview-tab-include-named-files nil
@@ -251,6 +254,13 @@ be taken in by name: it visits the note with `find-file-noselect', which
 nothing here advises, so turning this on would not reach it otherwise.  A
 title with no note behind it starts an Org capture instead, and the new
 note stays an ordinary buffer -- see `preview-tab--adopt'.
+
+So does `org-open-at-point', which follows the link at point -- a note
+named by its link instead of its title.  A `file:' link goes through
+`find-file' and would preview anyway, but an `id:' link, which is how
+Org-roam links its notes, goes through `find-file-noselect' as well.  A
+timestamp is no file at all: it opens the agenda, and the files the
+agenda loads behind it are left alone.
 
 `magit-find-file' previews only the worktree version of a file.  Asked
 for a revision it builds a read-only blob buffer, which visits no file on
@@ -570,19 +580,27 @@ killed and never kept."
       ;; before deciding what to do with it.
       (run-at-time 0 nil #'preview-tab--retire old))))
 
-(defun preview-tab--adopt (known)
+(defun preview-tab--adopt (known &optional failed)
   "Make the preview out of whatever file has been visited since KNOWN.
-KNOWN is the `buffer-list' from before the command ran."
+KNOWN is the `buffer-list' from before the command ran.  FAILED says the
+command exited non-locally, which may have kept it from showing the file
+it had reached."
   (let* ((new (seq-filter (lambda (buf)
                             (and (buffer-file-name buf)
                                  (not (memq buf known))))
                           (buffer-list)))
          ;; A command may open more than one file -- a hook reading something,
          ;; a language server warming up a workspace.  The one on screen is the
-         ;; one that was asked for.  Failing that, `buffer-list' is
-         ;; most-recently-used first, so take the front.
+         ;; one that was asked for.  A command that returned without a new file
+         ;; on screen showed the user nothing to preview: the agenda behind
+         ;; `org-open-at-point' on a timestamp loads its files out of sight,
+         ;; and closes them itself -- marked, one would be killed out from
+         ;; under it by the next preview.  Only a command that failed part way
+         ;; may have reached the file without getting as far as showing it,
+         ;; and then `buffer-list' being most-recently-used first makes the
+         ;; front the best guess.
          (opened (or (seq-find (lambda (buf) (get-buffer-window buf t)) new)
-                     (car new)))
+                     (and failed (car new))))
          (shown (window-buffer (selected-window))))
     (cond
      ;; A file buffer that did not exist before: this is the preview -- unless
@@ -619,14 +637,16 @@ or not the mode is on."
   (if preview-tab--busy
       (preview-tab--invoke fn args interactive)
     (let ((known (buffer-list))
-          (preview-tab--busy t))
+          (preview-tab--busy t)
+          (returned nil))
       ;; `unwind-protect', not `prog1'.  A command that reaches the file and
       ;; then signals -- a stale xref location, an erroring hook, plain C-g --
       ;; would otherwise leave the buffer open and tracked by nobody, which is
       ;; the one outcome this package exists to avoid.
       (unwind-protect
-          (preview-tab--invoke fn args interactive)
-        (preview-tab--adopt known)))))
+          (prog1 (preview-tab--invoke fn args interactive)
+            (setq returned t))
+        (preview-tab--adopt known (not returned))))))
 
 (defun preview-tab--advice (fn &rest args)
   "Around advice on `preview-tab-commands': preview the file FN opens.

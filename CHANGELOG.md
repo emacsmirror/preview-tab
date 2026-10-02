@@ -4,6 +4,27 @@ Notable changes to preview-tab. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `preview-tab-include-named-files` now takes in `org-open-at-point`, so a note
+  reached through a link previews. A `file:` link already did, through
+  `find-file`, but an `id:` link — the kind Org-roam puts between notes —
+  visits the note with `find-file-noselect` and switches to it, and the
+  option used to leave it untouched.
+
+### Fixed
+
+- A file the command opens without showing it is no longer made the preview.
+  The file on screen was always preferred, but with none there the most
+  recently opened one was taken anyway. `org-open-at-point` on a timestamp
+  opens the agenda, which loads its files out of sight: one of them would have
+  become the preview, retired the standing one, and been killed out from under
+  the agenda by the next. Falling back on the most recent is now kept for a
+  command that signals, which may have reached its file without getting as far
+  as showing it.
+
 ## [0.6.1]
 
 ### Changed

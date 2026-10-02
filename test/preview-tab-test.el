@@ -16,6 +16,7 @@
 (require 'ert)
 (require 'dired)
 (require 'grep)
+(require 'org-id)
 (require 'tab-line)
 
 ;; Not bound before Emacs 28.1, and the byte-compiler has to be told so or it
@@ -49,6 +50,14 @@ they are at it."
   (interactive "sFile: ")
   (find-file-noselect (preview-tab-test--file "e.txt"))
   (display-buffer (find-file-noselect (preview-tab-test--file name))))
+
+(defun preview-tab-test-open-agenda ()
+  "Stand-in command: show a buffer of its own, reading \"e.txt\" behind it.
+Models `org-open-at-point' on a timestamp, which opens the agenda: the
+files it loads are never shown, and the agenda closes them itself."
+  (interactive)
+  (find-file-noselect (preview-tab-test--file "e.txt"))
+  (switch-to-buffer (get-buffer-create "*preview-tab-test-agenda*")))
 
 (defun preview-tab-test-open-then-fail (name)
   "Stand-in command: visit scratch file NAME, then signal.
@@ -446,6 +455,28 @@ happened to read on the side."
       (should (preview-tab-test--preview-p "a.txt"))
       (should-not (preview-tab-test--preview-p "e.txt")))))
 
+(ert-deftest preview-tab-test-unshown-file-is-left-alone ()
+  "A file the command opens but never shows is not made the preview.
+The command returned with something else on screen, so there is nothing
+the user looked at.  The agenda behind `org-open-at-point' does this, and
+marked, one of its files would be killed out from under it by the next
+preview -- as would the standing preview, which this one would replace."
+  (preview-tab-test--with-env
+    (let ((preview-tab-commands '(preview-tab-test-open
+                                  preview-tab-test-open-agenda)))
+      (preview-tab-mode -1)
+      (preview-tab-mode 1)
+      (unwind-protect
+          (progn
+            (preview-tab-test-open "a.txt")
+            (preview-tab-test--settle)
+            (preview-tab-test-open-agenda)
+            (preview-tab-test--settle)
+            (should (preview-tab-test--live-p "e.txt"))
+            (should-not (preview-tab-test--preview-p "e.txt"))
+            (should (preview-tab-test--preview-p "a.txt")))
+        (kill-buffer "*preview-tab-test-agenda*")))))
+
 
 (ert-deftest preview-tab-test-failing-command-still-adopts ()
   "A command that visits the file and then signals leaves a preview, not a leak.
@@ -516,11 +547,12 @@ ever clean it up."
       (should (preview-tab-test--preview-p "a.txt")))))
 
 (ert-deftest preview-tab-test-include-named-files-covers-the-whole-family ()
-  "The option takes in `magit-find-file', `+lookup/file', `org-roam-node-find'.
-Along with the variants.  Checked through the advice rather than the
-constant, so that it is the commands actually taken over that are pinned
-down.  Neither Magit, Doom nor Org-roam need be present for this: the advice
-goes on the bare symbol either way."
+  "The option takes in `magit-find-file', `+lookup/file' and the Org ones.
+Those being `org-roam-node-find' and `org-open-at-point', and along with
+them the variants.  Checked through the advice rather than the constant,
+so that it is the commands actually taken over that are pinned down.
+Neither Magit, Doom nor Org-roam need be present for this: the advice goes
+on the bare symbol either way."
   (preview-tab-test--with-env
     (let ((preview-tab-commands nil)
           (preview-tab-include-named-files t))
@@ -533,9 +565,39 @@ goes on the bare symbol either way."
                      magit-find-file-other-window
                      magit-find-file-other-frame
                      +lookup/file
-                     org-roam-node-find))
+                     org-roam-node-find
+                     org-open-at-point))
         (should (advice-member-p #'preview-tab--advice cmd)))
       (preview-tab-mode -1))))
+
+(ert-deftest preview-tab-test-org-id-link-previews ()
+  "Following an Org `id:' link with the option on previews the note.
+That is how Org-roam links one note to the next, and it never calls
+`find-file': `org-id-find' visits the note with `find-file-noselect' and
+the link switches to the buffer, so the option has to take in
+`org-open-at-point' itself.  The note linked from stays put."
+  (preview-tab-test--with-env
+    (let ((preview-tab-commands nil)
+          (preview-tab-include-named-files t)
+          (org-link-frame-setup '((file . find-file)))
+          (org-id-locations-file (preview-tab-test--file "org-id-locations"))
+          (org-id-locations (make-hash-table :test #'equal))
+          (org-id-files nil))
+      (preview-tab-mode -1)
+      (preview-tab-mode 1)
+      (with-temp-file (preview-tab-test--file "note.org")
+        (insert "* Note\n:PROPERTIES:\n:ID: preview-tab-test-note\n:END:\n"))
+      (with-temp-file (preview-tab-test--file "index.org")
+        (insert "[[id:preview-tab-test-note][the note]]\n"))
+      (puthash "preview-tab-test-note" (preview-tab-test--file "note.org")
+               org-id-locations)
+      (switch-to-buffer (find-file-noselect (preview-tab-test--file "index.org")))
+      (search-forward "the note")
+      (org-open-at-point)
+      (preview-tab-test--settle)
+      (should (preview-tab-test--preview-p "note.org"))
+      (should (preview-tab-test--live-p "index.org"))
+      (should-not (preview-tab-test--preview-p "index.org")))))
 
 (ert-deftest preview-tab-test-find-file-can-be-listed-on-its-own ()
   "`find-file' can still go in `preview-tab-commands' by hand.

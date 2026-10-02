@@ -126,7 +126,7 @@ a preview if the command that opened it is in `preview-tab-commands`.
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `preview-tab-commands` | Dired, Treemacs, Magit, xref, compile/grep, flymake, consult, Doom | Commands whose file visits are previews. |
-| `preview-tab-include-named-files` | nil | Whether `find-file`, `magit-find-file`, `+lookup/file` and `org-roam-node-find` preview too. |
+| `preview-tab-include-named-files` | nil | Whether `find-file`, `magit-find-file`, … preview too. |
 | `preview-tab-slant-faces` | vanilla, doom-modeline, centaur-tabs faces | Faces italicised while a buffer is a preview. `tab-line-mode` is handled separately, by `preview-tab-tab-line-face`. |
 | `preview-tab-indicator` | `auto` | `auto`, `icon`, `label`, `both`, or nil. |
 | `preview-tab-icon` | `"nf-md-eye_outline"` | [nerd-icons](https://github.com/rainstormstudio/nerd-icons.el) Material Design icon name. |
@@ -150,9 +150,9 @@ become previews.
 
 ### Previewing named files
 
-Neither `find-file` nor `magit-find-file` is a preview source, and in Doom
-neither is `+lookup/file`. Nor is `org-roam-node-find`, which names a note by
-its title. If you'd rather they were:
+Commands that open a file you named — `find-file`, `magit-find-file`,
+`org-roam-node-find`, `org-open-at-point`… — are not preview sources. If you'd
+rather they were:
 
 ```elisp
 (setopt preview-tab-include-named-files t)
