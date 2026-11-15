@@ -1,8 +1,8 @@
 ;;; preview-tab.el --- Temporary file buffers, like VS Code's preview tab  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026 Vladimir Kosteley
+;; Copyright (C) 2026 Vladimir Kostelei
 
-;; Author: Vladimir Kosteley <github@ismd.dev>
+;; Author: Vladimir Kostelei <github@ismd.dev>
 ;; Assisted-by: Claude:claude-opus-5
 ;; Version: 0.7.0
 ;; URL: https://github.com/ismd/preview-tab.el
